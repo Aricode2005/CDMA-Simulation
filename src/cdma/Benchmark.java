@@ -10,7 +10,6 @@ public class Benchmark {
     public static void main(String[] args) throws IOException {
         int[] ns = {4, 8, 16, 32};
         
-        // Read payload from input.txt or use dummy text
         byte[] payloadBytes;
         try {
             payloadBytes = Files.readAllBytes(Paths.get("input.txt"));
@@ -26,7 +25,6 @@ public class Benchmark {
         
         Random rand = new Random();
         
-        // We will force a minimum number of time slots to benchmark the CPU load properly
         int TARGET_TIME_SLOTS = 50000; 
         
         for (int n : ns) {
@@ -40,35 +38,29 @@ public class Benchmark {
             for (int i = 0; i < n; i++) {
                 senders[i] = new Sender(i);
                 senders[i].setPayload(payloadBytes);
-                // Assign a random receiver as destination
                 senders[i].setDestination(rand.nextInt(n));
                 
                 receivers[i] = new Receiver(i, walshMatrix[i]);
             }
             
-            // If payload is tiny, we extend the loop to TARGET_TIME_SLOTS so we can actually measure CPU scaling. 
-            // Senders will naturally send 'Silence' once payload is exhausted, which still stresses the math engine.
+           
             int maxBits = Math.max(payloadBytes.length * 8, TARGET_TIME_SLOTS);
             int activeTimeSlots = 0;
             
             long startTime = System.nanoTime();
             
-            // Core Simulation Loop
             for (int k = 0; k < maxBits; k++) {
                 int[][] allChips = new int[n][m];
                 boolean slotActive = false;
                 
-                // 1. Encode Phase
                 for (int i = 0; i < n; i++) {
-                    Integer bit = senders[i].getNextBit(); // returns null (silence) when out of bounds
+                    Integer bit = senders[i].getNextBit(); 
                     int dest = senders[i].getDestination();
                     allChips[i] = senders[i].encode(bit, walshMatrix[dest]);
                 }
                 
-                // 2. Combine Phase (Channel Multiplexing)
                 int[] combined = Channel.combine(allChips);
                 
-                // Active slot detection
                 for (int val : combined) {
                     if (val != 0) {
                         slotActive = true;
@@ -79,7 +71,6 @@ public class Benchmark {
                     activeTimeSlots++;
                 }
                 
-                // 3. Decode Phase
                 for (int i = 0; i < n; i++) {
                     receivers[i].receiveBit(receivers[i].decode(combined));
                 }
