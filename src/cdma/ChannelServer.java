@@ -67,6 +67,10 @@ public class ChannelServer {
 
         System.out.println("\nStarting multiplexing over " + maxBits + " time slots...");
 
+        long startTime = System.currentTimeMillis();
+        int activeTimeSlots = 0;
+        int peakAmplitude = 0;
+
         for (int bitIndex = 0; bitIndex < maxBits; bitIndex++) {
             int[][] allChips = new int[n][m];
             
@@ -77,10 +81,25 @@ public class ChannelServer {
             }
             
             int[] combined = new int[m];
+            boolean slotActive = false;
             for (int i = 0; i < n; i++) {
                 for (int j = 0; j < m; j++) {
                     combined[j] += allChips[i][j];
                 }
+            }
+            
+            // Metrics Tracking
+            for (int j = 0; j < m; j++) {
+                int absVal = Math.abs(combined[j]);
+                if (absVal > peakAmplitude) {
+                    peakAmplitude = absVal;
+                }
+                if (absVal > 0) {
+                    slotActive = true;
+                }
+            }
+            if (slotActive) {
+                activeTimeSlots++;
             }
             
             System.out.print("[Time Slot " + bitIndex + "] Combined Channel Signal: [");
@@ -96,6 +115,22 @@ public class ChannelServer {
                 dos[i].flush();
             }
         }
+
+        long endTime = System.currentTimeMillis();
+        long duration = (endTime - startTime);
+        if (duration == 0) duration = 1; // Prevent division by zero
+        
+        System.out.println("\n=========================================");
+        System.out.println("       CHANNEL EXECUTION METRICS         ");
+        System.out.println("=========================================");
+        System.out.println("Total Time Slots (Bits)   : " + maxBits);
+        System.out.println("Active Time Slots         : " + activeTimeSlots + " (" + String.format("%.1f", (activeTimeSlots * 100.0 / maxBits)) + "%)");
+        System.out.println("Idle/Silent Time Slots    : " + (maxBits - activeTimeSlots));
+        System.out.println("Peak Signal Amplitude     : " + peakAmplitude + "V (Max simultaneous overlaps)");
+        System.out.println("Total Chips Processed     : " + (maxBits * n * m) + " inbound / " + (maxBits * n * m) + " outbound");
+        System.out.println("Execution Time            : " + duration + " ms");
+        System.out.println("Throughput                : " + String.format("%.2f", (maxBits * 1000.0 / duration)) + " bits/sec");
+        System.out.println("=========================================");
 
         System.out.println("\nTransmission complete. Shutting down Channel Server.");
         for (int i = 0; i < n; i++) {
