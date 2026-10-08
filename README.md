@@ -1,4 +1,4 @@
-# Assignment 4: CDMA Simulation with Walsh Codes
+# CDMA Simulation with Walsh Codes
 
 This project is a distributed Java-based simulation of Code Division Multiple Access (CDMA) over a shared network channel. It uses Walsh Codes to perfectly multiplex and demultiplex concurrent data transmissions, mirroring real-world physical airwaves.
 
